@@ -12,7 +12,8 @@ const propertySchema = new mongoose.Schema({
     },
     price: {
         type: Number,
-        required: [true, 'Price is required']
+        required: [true, 'Price is required'],
+        min: [1, 'Price must be greater than zero']
     },
     location: {
         city: {

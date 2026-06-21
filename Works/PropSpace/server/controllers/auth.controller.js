@@ -14,6 +14,10 @@ exports.register = async (req, res) => {
     try {
         const { username, email, password } = req.body;
 
+        if (!username || !email || !password) {
+            return res.status(400).json({ message: 'All fields are required' });
+        }
+
         const userExists = await User.findOne({ $or: [{ email }, { username }] });
         if (userExists) {
             return res.status(400).json({ message: 'User already exists' });
@@ -34,7 +38,10 @@ exports.register = async (req, res) => {
             });
         }
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        if (error.name === 'ValidationError' || error.name === 'CastError') {
+            return res.status(400).json({ message: error.message });
+        }
+        res.status(500).json({ message: 'Internal Server Error' });
     }
 };
 
@@ -42,6 +49,10 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ message: 'All fields are required' });
+        }
 
         const user = await User.findOne({ email });
         if (user && (await user.comparePassword(password, user.password))) {
@@ -55,7 +66,10 @@ exports.login = async (req, res) => {
             res.status(401).json({ message: 'Invalid email or password' });
         }
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        if (error.name === 'ValidationError' || error.name === 'CastError') {
+            return res.status(400).json({ message: error.message });
+        }
+        res.status(500).json({ message: 'Internal Server Error' });
     }
 };
 
@@ -75,7 +89,10 @@ exports.getProfile = async (req, res) => {
             res.status(404).json({ message: 'User not found' });
         }
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        if (error.name === 'ValidationError' || error.name === 'CastError') {
+            return res.status(400).json({ message: error.message });
+        }
+        res.status(500).json({ message: 'Internal Server Error' });
     }
 };
 
@@ -113,6 +130,9 @@ exports.updateProfile = async (req, res) => {
             res.status(404).json({ message: 'User not found' });
         }
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        if (error.name === 'ValidationError' || error.name === 'CastError') {
+            return res.status(400).json({ message: error.message });
+        }
+        res.status(500).json({ message: 'Internal Server Error' });
     }
 };

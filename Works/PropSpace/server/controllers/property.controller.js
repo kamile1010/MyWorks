@@ -17,7 +17,10 @@ exports.getProperties = async (req, res) => {
         const properties = await Property.find(query).populate('author', 'username email');
         res.json(properties);
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        if (error.name === 'ValidationError' || error.name === 'CastError') {
+            return res.status(400).json({ message: error.message });
+        }
+        res.status(500).json({ message: 'Internal Server Error' });
     }
 };
 
@@ -31,7 +34,10 @@ exports.getPropertyById = async (req, res) => {
             res.status(404).json({ message: 'Property not found' });
         }
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        if (error.name === 'ValidationError' || error.name === 'CastError') {
+            return res.status(400).json({ message: error.message });
+        }
+        res.status(500).json({ message: 'Internal Server Error' });
     }
 };
 
@@ -41,7 +47,10 @@ exports.getMyProperties = async (req, res) => {
         const properties = await Property.find({ author: req.user._id });
         res.json(properties);
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        if (error.name === 'ValidationError' || error.name === 'CastError') {
+            return res.status(400).json({ message: error.message });
+        }
+        res.status(500).json({ message: 'Internal Server Error' });
     }
 };
 
@@ -49,6 +58,10 @@ exports.getMyProperties = async (req, res) => {
 exports.createProperty = async (req, res) => {
     try {
         const { title, description, price, city, country, propertyType, imageUrls } = req.body;
+        if (!title || !description || price == null || !city || !country || !propertyType) {
+            return res.status(400).json({ message: 'Missing required fields' });
+        }
+
         const property = await Property.create({
             title,
             description,
@@ -60,7 +73,10 @@ exports.createProperty = async (req, res) => {
         });
         res.status(201).json(property);
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        if (error.name === 'ValidationError' || error.name === 'CastError') {
+            return res.status(400).json({ message: error.message });
+        }
+        res.status(500).json({ message: 'Internal Server Error' });
     }
 };
 
@@ -77,14 +93,27 @@ exports.updateProperty = async (req, res) => {
             return res.status(403).json({ message: 'Unauthorized to update this listing' });
         }
 
+        const { city, country, ...restBody } = req.body;
+        const updateData = { ...restBody, author: req.user._id };
+
+        if (city || country) {
+            updateData.location = {
+                city: city || property.location.city,
+                country: country || property.location.country
+            };
+        }
+
         const updatedProperty = await Property.findByIdAndUpdate(
             req.params.id,
-            { ...req.body, author: req.user._id },
-            { new: true }
+            updateData,
+            { new: true, runValidators: true }
         );
         res.json(updatedProperty);
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        if (error.name === 'ValidationError' || error.name === 'CastError') {
+            return res.status(400).json({ message: error.message });
+        }
+        res.status(500).json({ message: 'Internal Server Error' });
     }
 };
 
@@ -104,6 +133,9 @@ exports.deleteProperty = async (req, res) => {
         await property.deleteOne();
         res.json({ message: 'Property removed' });
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        if (error.name === 'ValidationError' || error.name === 'CastError') {
+            return res.status(400).json({ message: error.message });
+        }
+        res.status(500).json({ message: 'Internal Server Error' });
     }
 };

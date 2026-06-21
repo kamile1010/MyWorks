@@ -1,4 +1,4 @@
-import React from 'react';
+import { useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import Navbar from './components/Navbar';
@@ -10,8 +10,7 @@ import CreateListing from './pages/CreateListing';
 import Profile from './pages/Profile';
 
 const ProtectedRoute = ({ children }) => {
-  const { user, loading } = React.useContext(AuthContext);
-  if (loading) return <div className="container" style={{ paddingTop: '5rem' }}>Loading...</div>;
+  const { user } = useContext(AuthContext);
   if (!user) return <Navigate to="/login" />;
   return children;
 };
@@ -22,31 +21,31 @@ function App() {
       <Router>
         <div className="min-h-screen">
           <Navbar />
-          <main className="container" style={{ paddingBottom: '2rem' }}>
+          <main style={{ paddingBottom: '2rem' }}>
             <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+              <Route path="/login" element={<div className="container"><Login /></div>} />
+              <Route path="/register" element={<div className="container"><Register /></div>} />
               
               {/* Protected Routes */}
               <Route path="/my-listings" element={
                 <ProtectedRoute>
-                  <MyListings />
+                  <div className="container"><MyListings /></div>
                 </ProtectedRoute>
               } />
               <Route path="/create-listing" element={
                 <ProtectedRoute>
-                  <CreateListing />
+                  <div className="container"><CreateListing /></div>
                 </ProtectedRoute>
               } />
               <Route path="/edit-listing/:id" element={
                 <ProtectedRoute>
-                  <CreateListing isEdit={true} />
+                  <div className="container"><CreateListing isEdit={true} /></div>
                 </ProtectedRoute>
               } />
               <Route path="/profile" element={
                 <ProtectedRoute>
-                  <Profile />
+                  <div className="container"><Profile /></div>
                 </ProtectedRoute>
               } />
             </Routes>

@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/api';
-import { Save, ArrowLeft, Upload, X, ImagePlus, Loader } from 'lucide-react';
+import { Save, ArrowLeft, X, ImagePlus, Loader } from 'lucide-react';
 
 const CreateListing = ({ isEdit = false }) => {
     const { id } = useParams();
@@ -11,6 +11,7 @@ const CreateListing = ({ isEdit = false }) => {
     const [uploading, setUploading] = useState(false);
     const [fetching, setFetching] = useState(isEdit);
     const [dragActive, setDragActive] = useState(false);
+    const [errorMsg, setErrorMsg] = useState('');
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -22,7 +23,7 @@ const CreateListing = ({ isEdit = false }) => {
     });
     // Local preview files (not yet uploaded)
     const [pendingFiles, setPendingFiles] = useState([]);
-    const [previews, setPreviews] = useState([]);
+    const [imageUrlInput, setImageUrlInput] = useState('');
 
     useEffect(() => {
         if (isEdit && id) {
@@ -47,14 +48,10 @@ const CreateListing = ({ isEdit = false }) => {
             };
             fetchProperty();
         }
-    }, [isEdit, id]);
+    }, [isEdit, id, navigate]);
 
     // Generate previews for pending files
-    useEffect(() => {
-        const newPreviews = pendingFiles.map(file => URL.createObjectURL(file));
-        setPreviews(newPreviews);
-        return () => newPreviews.forEach(url => URL.revokeObjectURL(url));
-    }, [pendingFiles]);
+    const previews = useMemo(() => pendingFiles.map(file => URL.createObjectURL(file)), [pendingFiles]);
 
     const totalImages = formData.imageUrls.length + pendingFiles.length;
 
@@ -62,7 +59,7 @@ const CreateListing = ({ isEdit = false }) => {
         const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
         const remaining = 6 - totalImages;
         if (remaining <= 0) {
-            alert('Maximum 6 images allowed');
+            setErrorMsg('Maximum 6 images allowed');
             return;
         }
         const toAdd = imageFiles.slice(0, remaining);
@@ -94,6 +91,19 @@ const CreateListing = ({ isEdit = false }) => {
         e.target.value = '';
     };
 
+    const handleAddImageUrl = () => {
+        if (!imageUrlInput.trim()) return;
+        if (totalImages >= 6) {
+            setErrorMsg('Maximum 6 images allowed');
+            return;
+        }
+        setFormData(prev => ({
+            ...prev,
+            imageUrls: [...prev.imageUrls, imageUrlInput.trim()]
+        }));
+        setImageUrlInput('');
+    };
+
     const removeExistingImage = (index) => {
         setFormData(prev => ({
             ...prev,
@@ -114,7 +124,7 @@ const CreateListing = ({ isEdit = false }) => {
             const { data } = await api.post('/upload', formPayload);
             return data.urls;
         } catch (error) {
-            throw new Error(error.response?.data?.message || 'Image upload failed');
+            throw new Error(error.response?.data?.message || 'Image upload failed', { cause: error });
         } finally {
             setUploading(false);
         }
@@ -122,6 +132,17 @@ const CreateListing = ({ isEdit = false }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setErrorMsg(''); // Reset error
+        
+        // Frontend Validation
+        if (!formData.title.trim()) return setErrorMsg('Title is required.');
+        if (!formData.description.trim()) return setErrorMsg('Description is required.');
+        if (Number(formData.price) <= 0) return setErrorMsg('Price must be greater than zero.');
+        if (!formData.city.trim()) return setErrorMsg('City is required.');
+        if (!formData.country.trim()) return setErrorMsg('Country is required.');
+        const validTypes = ['Apartment', 'House', 'Studio'];
+        if (!validTypes.includes(formData.propertyType)) return setErrorMsg('Invalid property type.');
+
         setLoading(true);
         try {
             // Upload pending files first
@@ -137,7 +158,7 @@ const CreateListing = ({ isEdit = false }) => {
             }
             navigate('/my-listings');
         } catch (error) {
-            alert(error.message || error.response?.data?.message || 'Failed to save listing');
+            setErrorMsg(error.response?.data?.message || error.message || 'Failed to save listing');
         } finally {
             setLoading(false);
         }
@@ -155,6 +176,12 @@ const CreateListing = ({ isEdit = false }) => {
                 <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '2rem' }}>
                     {isEdit ? 'Edit Property Listing' : 'Create New Property Listing'}
                 </h1>
+
+                {errorMsg && (
+                    <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', color: '#ef4444', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <X size={18} /> {errorMsg}
+                    </div>
+                )}
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                     <div>
@@ -182,9 +209,10 @@ const CreateListing = ({ isEdit = false }) => {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Price ($)</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Price (FCFA)</label>
                             <input 
                                 type="number" 
+                                min="0"
                                 className="input-field" 
                                 required
                                 value={formData.price}
@@ -235,6 +263,29 @@ const CreateListing = ({ isEdit = false }) => {
                             <span style={{ color: '#94a3b8', marginLeft: '0.5rem' }}>({totalImages}/6)</span>
                         </label>
 
+                        {/* URL Input Section */}
+                        {totalImages < 6 && (
+                            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                                <input
+                                    type="url"
+                                    placeholder="Or paste an image URL instead..."
+                                    className="input-field"
+                                    value={imageUrlInput}
+                                    onChange={(e) => setImageUrlInput(e.target.value)}
+                                    style={{ flex: 1 }}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddImageUrl(); } }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleAddImageUrl}
+                                    className="btn-primary"
+                                    style={{ whiteSpace: 'nowrap', padding: '0.75rem 1.5rem' }}
+                                >
+                                    Add URL
+                                </button>
+                            </div>
+                        )}
+
                         {/* Drop Zone */}
                         {totalImages < 6 && (
                             <div
@@ -243,18 +294,18 @@ const CreateListing = ({ isEdit = false }) => {
                                 onDragOver={handleDragOver}
                                 onDragLeave={handleDragLeave}
                                 style={{
-                                    border: `2px dashed ${dragActive ? '#6366f1' : '#334155'}`,
+                                    border: `2px dashed ${dragActive ? '#d97706' : '#334155'}`,
                                     borderRadius: '0.75rem',
                                     padding: '2.5rem 1.5rem',
                                     textAlign: 'center',
                                     cursor: 'pointer',
                                     transition: 'all 0.25s ease',
-                                    background: dragActive ? 'rgba(99, 102, 241, 0.05)' : 'rgba(255,255,255,0.02)',
+                                    background: dragActive ? 'rgba(217, 119, 6, 0.05)' : 'rgba(255,255,255,0.02)',
                                     marginBottom: '1rem'
                                 }}
                             >
-                                <ImagePlus size={36} style={{ color: dragActive ? '#6366f1' : '#64748b', marginBottom: '0.75rem' }} />
-                                <p style={{ fontWeight: '600', marginBottom: '0.25rem', color: dragActive ? '#6366f1' : '#e2e8f0' }}>
+                                <ImagePlus size={36} style={{ color: dragActive ? '#d97706' : '#64748b', marginBottom: '0.75rem' }} />
+                                <p style={{ fontWeight: '600', marginBottom: '0.25rem', color: dragActive ? '#d97706' : '#e2e8f0' }}>
                                     {dragActive ? 'Drop images here' : 'Drag & drop images here'}
                                 </p>
                                 <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
@@ -298,7 +349,7 @@ const CreateListing = ({ isEdit = false }) => {
                                         </button>
                                         <span style={{
                                             position: 'absolute', bottom: '4px', left: '4px',
-                                            background: 'rgba(99, 102, 241,0.8)', color: '#fff', fontSize: '0.65rem',
+                                            background: 'rgba(217, 119, 6, 0.8)', color: '#fff', fontSize: '0.65rem',
                                             padding: '1px 6px', borderRadius: '4px'
                                         }}>
                                             Saved

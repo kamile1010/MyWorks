@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../api/api';
 import { Link } from 'react-router-dom';
 import { Edit, Trash2, Plus, Home } from 'lucide-react';
@@ -6,29 +6,32 @@ import { Edit, Trash2, Plus, Home } from 'lucide-react';
 const MyListings = () => {
     const [listings, setListings] = useState([]);
     const [loading, setLoading] = useState(true);
-
-    const fetchMyListings = async () => {
-        try {
-            const { data } = await api.get('/properties/mine');
-            setListings(data);
-        } catch (error) {
-            console.error('Error fetching my listings:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const [error, setError] = useState('');
 
     useEffect(() => {
+        const fetchMyListings = async () => {
+            try {
+                setError('');
+                const { data } = await api.get('/properties/mine');
+                setListings(data);
+            } catch (err) {
+                setError(err.response?.data?.message || err.message || 'Failed to load your listings');
+                console.error('Error fetching my listings:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
         fetchMyListings();
     }, []);
 
     const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this listing?')) {
             try {
+                setError('');
                 await api.delete(`/properties/${id}`);
                 setListings(listings.filter(l => l._id !== id));
-            } catch (error) {
-                alert('Failed to delete listing');
+            } catch (err) {
+                setError(err.response?.data?.message || err.message || 'Failed to delete listing');
             }
         }
     };
@@ -41,6 +44,12 @@ const MyListings = () => {
                     <Plus size={20} /> Create New Listing
                 </Link>
             </div>
+
+            {error && (
+                <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', color: '#ef4444', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem', textAlign: 'center' }}>
+                    {error}
+                </div>
+            )}
 
             {loading ? (
                 <p>Loading your listings...</p>
@@ -62,7 +71,7 @@ const MyListings = () => {
                             />
                             <div style={{ padding: '1rem' }}>
                                 <h3 style={{ fontSize: '1.125rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>{item.title}</h3>
-                                <p style={{ color: '#6366f1', fontWeight: '600', marginBottom: '1rem' }}>${item.price.toLocaleString()}</p>
+                                <p style={{ color: '#d97706', fontWeight: '600', marginBottom: '1rem' }}>{item.price.toLocaleString()} FCFA</p>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                     <Link to={`/edit-listing/${item._id}`} className="glass" style={{ flex: 1, textAlign: 'center', padding: '0.5rem', color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
                                         <Edit size={16} /> Edit

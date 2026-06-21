@@ -1,7 +1,7 @@
-import React, { useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useContext } from 'react';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { Home, User, PlusCircle, LogOut, Layout } from 'lucide-react';
+import { Home, User, PlusCircle, LogOut } from 'lucide-react';
 
 const Navbar = () => {
     const { user, logout } = useContext(AuthContext);
@@ -12,32 +12,45 @@ const Navbar = () => {
         navigate('/login');
     };
 
+    const navStyle = ({ isActive }) => ({
+        color: isActive ? '#d97706' : '#cbd5e1',
+        textDecoration: 'none',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.25rem',
+        fontWeight: isActive ? '600' : '400',
+        padding: '0.5rem 0.75rem',
+        borderRadius: '0.5rem',
+        background: isActive ? 'rgba(217, 119, 6, 0.1)' : 'transparent',
+        transition: 'all 0.3s ease'
+    });
+
     return (
         <nav className="glass" style={{ margin: '1rem', padding: '1rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: '1rem', zIndex: 100 }}>
             <Link to="/" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Home className="text-primary" />
-                Prop<span style={{ color: '#6366f1' }}>Space</span>
+                Prop<span style={{ color: '#d97706' }}>Space</span>
             </Link>
             
-            <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-                <Link to="/" style={{ color: 'white', textDecoration: 'none' }}>Feed</Link>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <NavLink to="/" style={navStyle}>Feed</NavLink>
                 {user ? (
                     <>
-                        <Link to="/my-listings" style={{ color: 'white', textDecoration: 'none' }}>My Listings</Link>
-                        <Link to="/create-listing" style={{ color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <NavLink to="/my-listings" style={navStyle}>My Listings</NavLink>
+                        <NavLink to="/create-listing" style={navStyle}>
                             <PlusCircle size={18} /> Add Property
-                        </Link>
-                        <Link to="/profile" style={{ color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        </NavLink>
+                        <NavLink to="/profile" style={navStyle}>
                             <User size={18} /> {user.username}
-                        </Link>
-                        <button onClick={handleLogout} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        </NavLink>
+                        <button onClick={handleLogout} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', transition: 'background 0.3s' }} onMouseOver={(e) => e.currentTarget.style.background='rgba(239, 68, 68, 0.1)'} onMouseOut={(e) => e.currentTarget.style.background='none'}>
                             <LogOut size={18} /> Logout
                         </button>
                     </>
                 ) : (
                     <>
-                        <Link to="/login" style={{ color: 'white', textDecoration: 'none' }}>Login</Link>
-                        <Link to="/register" className="btn-primary" style={{ textDecoration: 'none' }}>Sign Up</Link>
+                        <NavLink to="/login" style={navStyle}>Login</NavLink>
+                        <Link to="/register" className="btn-primary" style={{ textDecoration: 'none', marginLeft: '0.5rem' }}>Sign Up</Link>
                     </>
                 )}
             </div>
