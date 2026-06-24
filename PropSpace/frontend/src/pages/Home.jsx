@@ -162,7 +162,7 @@ const Home = () => {
             <div className="container">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2.5rem' }}>
                     <div>
-                        <h2 style={{ fontSize: '2.25rem', fontWeight: 'bold' }}>Handpicked Buildings</h2>
+                        <h2 style={{ fontSize: '2.25rem', fontWeight: 'bold' }}>Handpicked Properties</h2>
                         <p style={{ color: '#94a3b8', marginTop: '0.5rem' }}>Discover our top-tier selections curated just for you</p>
                     </div>
                 </div>
